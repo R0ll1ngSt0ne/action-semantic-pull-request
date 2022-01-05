@@ -6,17 +6,13 @@ const validateCommitMessages = require('./src/validateCommitMessages');
 let validationErrorPrTitleOrSingleCommit;
 let validationErrorCommitMessages;
 
-try {
-    validatePrTitleOrSingleCommit();
-} catch (error) {
+validatePrTitleOrSingleCommit().catch(error => {
     validationErrorPrTitleOrSingleCommit = error;
-}
+})
 
-try {
-    validateCommitMessages();
-} catch (error) {
+validateCommitMessages().catch(error => {
     validationErrorCommitMessages = error;
-}
+})
 
 if (validationErrorPrTitleOrSingleCommit && validationErrorCommitMessages) {
     core.setFailed(validationErrorPrTitleOrSingleCommit.message + " / " + validationErrorCommitMessages.message);
