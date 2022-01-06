@@ -28,7 +28,7 @@ async function run() {
   if (validationErrorPrTitleOrSingleCommit && validationErrorCommitMessages) {
     core.setFailed(
       validationErrorPrTitleOrSingleCommit.message +
-        ' / ' +
+        '\n\n' +
         validationErrorCommitMessages.message
     );
   }
@@ -49284,6 +49284,66 @@ module.exports = function parseConfig() {
 
 /***/ }),
 
+/***/ 371:
+/***/ ((module) => {
+
+/*eslint no-undef: 0*/
+/**
+ * Post a comment to the PR
+ * @param {Object} octokit
+ * @param {Object} context
+ * @param {String} commentHeader
+ * @param {String} comment
+ * @return {Promise}
+ */
+module.exports = function postComment(
+  octokit,
+  context,
+  commentHeader,
+  comment
+) {
+  //there's no API to update a comment, so we
+  //keep track of comments by inserting an hidden comment
+  //and removing the previous
+  return octokit.issues
+    .listComments({
+      repo: context.repo.repo,
+      owner: context.repo.owner,
+      issue_number: context.payload.pull_request.number
+    })
+    .then((results) => {
+      const {data: existingComments} = results;
+
+      return existingComments.filter(({body}) =>
+        body.startsWith(commentHeader)
+      );
+    })
+    .then((toDelete) => {
+      if (Array.isArray(toDelete)) {
+        return Promise.all(
+          toDelete.map(({id}) =>
+            octokit.issues.deleteComment({
+              repo: context.repo.repo,
+              owner: context.repo.owner,
+              comment_id: id
+            })
+          )
+        );
+      }
+    })
+    .then(() =>
+      octokit.issues.createComment({
+        repo: context.repo.repo,
+        owner: context.repo.owner,
+        issue_number: context.payload.pull_request.number,
+        body: `${commentHeader}\n${comment}`
+      })
+    );
+};
+
+
+/***/ }),
+
 /***/ 3209:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -49314,6 +49374,7 @@ const gitSemverTags = __nccwpck_require__(2408);
 const semverInc = __nccwpck_require__(900);
 const semverParse = __nccwpck_require__(5925);
 const parseConfig = __nccwpck_require__(5194);
+const postComment = __nccwpck_require__(371);
 
 //PR stops listing commits after this limit
 const commitNumbersThreshold = 250;
@@ -49324,6 +49385,7 @@ const commitNumbersThreshold = 250;
  */
 module.exports = function validateCommitMessages() {
   const {githubBaseUrl} = parseConfig();
+  const commentHeader = '<!--ASPR-CM-f8854b54-0e83-4d76-af47-eef3cc47024d-->';
 
   const context = github.context;
   const octokit = github.getOctokit(process.env.GITHUB_TOKEN, {
@@ -49370,15 +49432,21 @@ module.exports = function validateCommitMessages() {
         return postComment(
           octokit,
           context,
-          '❌ The commits messages are not compliant with the [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) format!'
+          commentHeader,
+          '❌ There are no commits messages compliant with the [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) format!'
         ).then(() =>
-          Promise.reject(new Error('The commits messages are not compliant'))
+          Promise.reject(
+            new Error(
+              'No commit messages compliant with conventional commits found'
+            )
+          )
         );
       }
 
       return postComment(
         octokit,
         context,
+        commentHeader,
         getMessage(recommendation, lastVersion, version, commitNumbers)
       );
     });
@@ -49471,55 +49539,6 @@ function getMessage(
     `);
   message.push(`${reason}`);
   return message.join('\n');
-}
-
-/**
- * Post a comment to the PR
- * @param {Object} octokit
- * @param {Object} context
- * @param {String} comment
- * @return {Promise}
- */
-function postComment(octokit, context, comment) {
-  //there's no API to update a comment, so we
-  //keep track of comments by inserting an hidden comment
-  //and removing the previous
-  const commentHeader = '<!--OAT-cc-action-->';
-
-  return octokit.issues
-    .listComments({
-      repo: context.repo.repo,
-      owner: context.repo.owner,
-      issue_number: context.payload.pull_request.number
-    })
-    .then((results) => {
-      const {data: existingComments} = results;
-
-      return existingComments.filter(({body}) =>
-        body.startsWith(commentHeader)
-      );
-    })
-    .then((toDelete) => {
-      if (Array.isArray(toDelete)) {
-        return Promise.all(
-          toDelete.map(({id}) =>
-            octokit.issues.deleteComment({
-              repo: context.repo.repo,
-              owner: context.repo.owner,
-              comment_id: id
-            })
-          )
-        );
-      }
-    })
-    .then(() =>
-      octokit.issues.createComment({
-        repo: context.repo.repo,
-        owner: context.repo.owner,
-        issue_number: context.payload.pull_request.number,
-        body: `${commentHeader}\n${comment}`
-      })
-    );
 }
 
 
@@ -49642,6 +49661,7 @@ module.exports = async function validatePrTitle(
 
 const github = __nccwpck_require__(5438);
 const parseConfig = __nccwpck_require__(5194);
+const postComment = __nccwpck_require__(371);
 const validatePrTitle = __nccwpck_require__(3661);
 
 module.exports = async function validatePrTitleOrSingleCommit() {
@@ -49655,6 +49675,7 @@ module.exports = async function validatePrTitleOrSingleCommit() {
     validateSingleCommit,
     githubBaseUrl
   } = parseConfig();
+  const commentHeader = '<!--ASPR-PT-d607a30b-cbe7-4a1b-b90b-94bf57c9f90d-->';
 
   const client = github.getOctokit(process.env.GITHUB_TOKEN, {
     baseUrl: githubBaseUrl
@@ -49734,7 +49755,7 @@ module.exports = async function validatePrTitleOrSingleCommit() {
             });
           } catch (error) {
             throw new Error(
-              `Pull request has only one commit and it's not semantic; this may lead to a non-semantic commit in the base branch (see https://github.community/t/how-to-change-the-default-squash-merge-commit-message/1155). Amend the commit message to match the pull request title, or add another commit.`
+              "❌ Pull request has only one commit and it's not semantic; this may lead to a non-semantic commit in the base branch (see https://github.community/t/how-to-change-the-default-squash-merge-commit-message/1155). Amend the commit message to match the pull request title, or add another commit."
             );
           }
         }
@@ -49767,8 +49788,21 @@ module.exports = async function validatePrTitleOrSingleCommit() {
   }
 
   if (!isWip && validationError) {
+    await postComment(
+      client,
+      github.context,
+      commentHeader,
+      validationError.message
+    );
     throw validationError;
   }
+
+  await postComment(
+    client,
+    github.context,
+    commentHeader,
+    'Pull request title is semantic and can be used for Squash and Merge commits'
+  );
 };
 
 

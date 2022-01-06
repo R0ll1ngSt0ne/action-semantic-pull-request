@@ -1,5 +1,12 @@
 # Changelog
 
+### [3.7.2](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/compare/v3.7.1...v3.7.2) (2022-01-06)
+
+
+### Bug Fixes
+
+* improved issue reporting ([def952e](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/commit/def952ef76e5cd311822cfce4dc265452d3e9232))
+
 ### [3.7.1](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/compare/v3.7.0...v3.7.1) (2022-01-06)
 
 
