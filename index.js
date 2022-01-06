@@ -21,7 +21,7 @@ async function run() {
   if (validationErrorPrTitleOrSingleCommit && validationErrorCommitMessages) {
     core.setFailed(
       validationErrorPrTitleOrSingleCommit.message +
-        ' / ' +
+        '\n\n' +
         validationErrorCommitMessages.message
     );
   }
