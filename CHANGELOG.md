@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.7.0](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/compare/v3.6.0...v3.7.0) (2022-01-06)
+
+
+### Features
+
+* commit message scan as alternative to PR title ([df1d25c](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/commit/df1d25c12d805854455c72ed51209be818db3d4b))
+
 ## [3.6.0](https://github.com/amannn/action-semantic-pull-request/compare/v3.5.0...v3.6.0) (2022-01-05)
 
 
