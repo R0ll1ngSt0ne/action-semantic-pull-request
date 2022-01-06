@@ -27,7 +27,11 @@
     "@actions/github": "^4.0.0",
     "conventional-changelog-conventionalcommits": "4.5.0",
     "conventional-commit-types": "^3.0.0",
-    "conventional-commits-parser": "^3.2.0"
+    "conventional-commits-parser": "^3.2.0",
+    "@oat-sa/conventional-changelog-tao": "^0.2.0",
+    "conventional-recommended-bump": "^6.1.0",
+    "git-semver-tags": "^4.1.1",
+    "semver": "^7.3.4"
   },
   "devDependencies": {
     "@semantic-release/changelog": "5.0.1",
@@ -39,7 +43,10 @@
     "eslint": "7.9.0",
     "eslint-config-molindo": "5.0.1",
     "jest": "24.9.0",
-    "semantic-release": "17.3.0"
+    "semantic-release": "17.3.0",
+    "@oat-sa/eslint-config-tao": "^0.1.1",
+    "@oat-sa/prettier-config": "^0.1.1",
+    "prettier": "^2.2.1"
   },
   "engines": {
     "node": "^12.0.0"
