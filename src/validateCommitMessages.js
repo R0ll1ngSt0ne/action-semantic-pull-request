@@ -1,3 +1,4 @@
+/*eslint no-undef: 0*/
 /**
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -33,7 +34,7 @@ const commitNumbersThreshold = 250;
  * @return {Promise}
  */
 module.exports = function validateCommitMessages() {
-  const { githubBaseUrl } = parseConfig();
+  const {githubBaseUrl} = parseConfig();
 
   const context = github.context;
   const octokit = github.getOctokit(process.env.GITHUB_TOKEN, {
@@ -51,7 +52,7 @@ module.exports = function validateCommitMessages() {
     })
     .then((commits) =>
       Promise.all([
-        getRecommandation(commits.map((commit) => commit.sha)),
+        getRecommendation(commits.map((commit) => commit.sha)),
         getLastTag()
       ])
     )
@@ -95,11 +96,11 @@ module.exports = function validateCommitMessages() {
 };
 
 /**
- * Get commit recommendation
- * @param {String[]]} includeCommits - the list of commits to include
- * @returns {Promise<Object>} resolves with the recommendation object
+ * Get commit recommendation.
+ * @param {Array} includeCommits The list of commits to include
+ * @return {Promise<Object>} resolves with the recommendation object
  */
-function getRecommandation(includeCommits) {
+function getRecommendation(includeCommits) {
   return new Promise((resolve, reject) => {
     conventionalRecommendedBump(
       {
@@ -133,7 +134,7 @@ function getLastTag() {
       if (err) {
         return reject(err);
       }
-      if (tags && tags.length) {
+      if (tags && tags.length > 0) {
         return resolve(tags[0]);
       }
       return reject(new Error('no tag found'));
