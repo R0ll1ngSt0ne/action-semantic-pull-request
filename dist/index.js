@@ -6,24 +6,35 @@ module.exports =
 /***/ ((__unused_webpack_module, __unused_webpack_exports, __nccwpck_require__) => {
 
 const core = __nccwpck_require__(2186);
-
-const validatePrTitleOrSingleCommit = __nccwpck_require__(9772);
 const validateCommitMessages = __nccwpck_require__(3209);
+const validatePrTitleOrSingleCommit = __nccwpck_require__(9772);
 
 let validationErrorPrTitleOrSingleCommit;
 let validationErrorCommitMessages;
 
-validatePrTitleOrSingleCommit().catch(error => {
-    validationErrorPrTitleOrSingleCommit = error;
-})
+async function run() {
+  try {
+    await validatePrTitleOrSingleCommit();
+  } catch (e) {
+    validationErrorPrTitleOrSingleCommit = e;
+  }
 
-validateCommitMessages().catch(error => {
-    validationErrorCommitMessages = error;
-})
+  try {
+    await validateCommitMessages();
+  } catch (e) {
+    validationErrorCommitMessages = e;
+  }
 
-if (validationErrorPrTitleOrSingleCommit && validationErrorCommitMessages) {
-    core.setFailed(validationErrorPrTitleOrSingleCommit.message + " / " + validationErrorCommitMessages.message);
+  if (validationErrorPrTitleOrSingleCommit && validationErrorCommitMessages) {
+    core.setFailed(
+      validationErrorPrTitleOrSingleCommit.message +
+        ' / ' +
+        validationErrorCommitMessages.message
+    );
+  }
 }
+
+run();
 
 
 /***/ }),

@@ -1,5 +1,12 @@
 # Changelog
 
+### [3.7.1](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/compare/v3.7.0...v3.7.1) (2022-01-06)
+
+
+### Bug Fixes
+
+* proper async function exception handling ([071c59c](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/commit/071c59c33e77d9af709526eacccc23bcc0ab9d37))
+
 ## [3.7.0](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/compare/v3.6.0...v3.7.0) (2022-01-06)
 
 
