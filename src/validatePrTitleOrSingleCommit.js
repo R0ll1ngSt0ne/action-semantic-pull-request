@@ -140,6 +140,6 @@ module.exports = async function validatePrTitleOrSingleCommit() {
     client,
     github.context,
     commentHeader,
-    'Pull request title is semantic and can be used for Squash and Merge commits'
+    '👍 Pull request title is semantic and can be used for Squash and Merge commits'
   );
 };
