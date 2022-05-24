@@ -1,5 +1,12 @@
 # Changelog
 
+### [3.8.1](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/compare/v3.8.0...v3.8.1) (2022-05-24)
+
+
+### Bug Fixes
+
+* combined PR title and commit validation, added better messaging ([bd171b7](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/commit/bd171b74b98b9fc21642dea75dc37b708d5df0bc))
+
 ## [3.8.0](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/compare/v3.7.3...v3.8.0) (2022-05-05)
 
 
