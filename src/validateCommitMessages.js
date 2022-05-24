@@ -16,6 +16,7 @@
  *
  * Copyright (c) 2020 (original work) Open Assessment Technologies SA ;
  */
+const {promisify} = require('util');
 const core = require('@actions/core');
 const github = require('@actions/github');
 const conventionalPresetConfig = require('@oat-sa/conventional-changelog-tao');
@@ -25,7 +26,6 @@ const gitSemverTags = require('git-semver-tags');
 const semverInc = require('semver/functions/inc');
 const semverParse = require('semver/functions/parse');
 const parseConfig = require('./parseConfig');
-const postComment = require('./postComment');
 
 //PR stops listing commits after this limit
 const commitNumbersThreshold = 250;
@@ -34,9 +34,8 @@ const commitNumbersThreshold = 250;
  * The main entry point
  * @return {Promise}
  */
-module.exports = function validateCommitMessages() {
+module.exports = async function validateCommitMessages() {
   const {githubBaseUrl} = parseConfig();
-  const commentHeader = '<!--ASPR-CM-f8854b54-0e83-4d76-af47-eef3cc47024d-->';
 
   const context = github.context;
   const octokit = github.getOctokit(process.env.GITHUB_TOKEN, {
@@ -45,110 +44,71 @@ module.exports = function validateCommitMessages() {
 
   const commitNumbers = context.payload.pull_request.commits;
 
-  return octokit
-    .paginate(octokit.pulls.listCommits, {
-      repo: context.repo.repo,
-      owner: context.repo.owner,
-      pull_number: context.payload.pull_request.number,
-      per_page: 100
-    })
-    .then((commits) =>
-      Promise.all([
-        getRecommendation(commits.map((commit) => commit.sha)),
-        getLastTag()
-      ])
-    )
-    .then(([recommendation, lastTag] = []) => {
-      if (!recommendation || !lastTag) {
-        throw new Error('Unable to retrieve commits and tag information');
-      }
+  const pullCommits = await octokit.paginate(octokit.pulls.listCommits, {
+    repo: context.repo.repo,
+    owner: context.repo.owner,
+    pull_number: context.payload.pull_request.number,
+    per_page: 100
+  });
 
-      let lastVersion;
-      let version;
-      if (lastTag && recommendation) {
-        const lastVersionObject = semverParse(lastTag);
-        lastVersion = lastVersionObject.version;
-        version = semverInc(lastVersionObject, recommendation.releaseType);
-        core.setOutput('version', version);
-      }
+  const includeCommits = pullCommits.map((commit) => commit.sha);
 
-      core.info(JSON.stringify(recommendation, null, ' '));
-
-      if (
-        recommendation.stats &&
-        recommendation.stats.commits > 0 &&
-        recommendation.stats.unset + recommendation.stats.merge >=
-          recommendation.stats.commits
-      ) {
-        return postComment(
-          octokit,
-          context,
-          commentHeader,
-          '❌ There are no commits messages compliant with the [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) format!'
-        ).then(() =>
-          Promise.reject(
-            new Error(
-              'No commit messages compliant with conventional commits found'
-            )
-          )
-        );
-      }
-
-      return postComment(
-        octokit,
-        context,
-        commentHeader,
-        getMessage(recommendation, lastVersion, version, commitNumbers)
+  const recommendation = await promisify(conventionalRecommendedBump)({
+    //the preset cannot be used from string in an action due to missing lookups in node_modules
+    config: conventionalPresetConfig,
+    whatBump(commits) {
+      return presetBumper().whatBump(
+        commits.filter((commit) => includeCommits.includes(commit.hash))
       );
-    });
+    }
+  });
+
+  if (!recommendation) {
+    throw new Error('Unable to retrieve commit information');
+  }
+
+  const tags = await promisify(gitSemverTags)();
+  const version_altering_commits =
+    recommendation.stats.breakings +
+    recommendation.stats.features +
+    recommendation.stats.fixes;
+
+  let lastVersion;
+  let version = '1.0.0';
+  if (tags && tags.length > 0) {
+    const lastTag = tags[0];
+    if (lastTag) {
+      const lastVersionObject = semverParse(lastTag);
+      lastVersion = lastVersionObject.version;
+      if (version_altering_commits > 0) {
+        version = semverInc(lastVersion, recommendation.releaseType);
+      } else {
+        version = lastVersion;
+      }
+    }
+  }
+
+  core.setOutput('version', version);
+
+  core.info(JSON.stringify(recommendation, null, ' '));
+
+  if (
+    recommendation.stats &&
+    recommendation.stats.commits > 0 &&
+    recommendation.stats.unset + recommendation.stats.merge >=
+      recommendation.stats.commits
+  ) {
+    return [
+      false,
+      `No commit messages compliant with the Conventional Commits convention were found. Add at least one such commit.\n\n  For example, push a commit with a message similar to: *"**feat**: added feature 345"*\n\n`
+    ];
+  }
+
+  return [
+    true,
+    getMessage(recommendation, lastVersion, version, commitNumbers)
+  ];
 };
-
-/**
- * Get commit recommendation.
- * @param {Array} includeCommits The list of commits to include
- * @return {Promise<Object>} resolves with the recommendation object
- */
-function getRecommendation(includeCommits) {
-  return new Promise((resolve, reject) => {
-    conventionalRecommendedBump(
-      {
-        //the preset cannot be used from string in an action due to missing lookups in node_modules
-        config: conventionalPresetConfig,
-        whatBump(commits) {
-          return presetBumper().whatBump(
-            commits.filter((commit) => includeCommits.includes(commit.hash))
-          );
-        }
-      },
-      (err, recommendation) => {
-        if (err) {
-          return reject(err);
-        }
-
-        resolve(recommendation);
-      }
-    );
-  });
-}
-
-/**
- * Get the last tag,
- * it expects the local git to have the tags fetched
- * @return {Promise<Object>} resolves with the tag version object
- */
-function getLastTag() {
-  return new Promise((resolve, reject) => {
-    gitSemverTags((err, tags) => {
-      if (err) {
-        return reject(err);
-      }
-      if (tags && tags.length > 0) {
-        return resolve(tags[0]);
-      }
-      return reject(new Error('no tag found'));
-    });
-  });
-}
 
 /**
  * Build the comment message
@@ -167,10 +127,10 @@ function getMessage(
   version,
   commitNumbers = 0
 ) {
-  const message = ['### Version'];
+  const message = [];
   if (commitNumbers > commitNumbersThreshold) {
     message.push(
-      `⚠️  The pull request contains ${commitNumbers} commits. This message is based only on the first ${commitNumbersThreshold}.`
+      `⚠️The pull request contains ${commitNumbers} commits. This message is based only on the first ${commitNumbersThreshold}.`
     );
   }
   if (level === 0) {
@@ -180,10 +140,17 @@ function getMessage(
   }
   if (stats.unset > 0) {
     message.push(
-      `❕ Some commits are not using the conventional commits formats. They will be ignored in version management.`
+      `❕ Some commits are not using the Conventional Commits convention. They will be ignored in the version management.`
     );
   }
-  message.push(`
+
+  if (message.length === 0) {
+    message.push(
+      `👍  All commits are using the Conventional Commits convention.`
+    );
+  }
+
+  message.push(`---
 | Target Version | ${version} |
 | -------------- | ---------- |
 | Last version   | ${lastVersion} |

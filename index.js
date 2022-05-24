@@ -1,28 +1,88 @@
 const core = require('@actions/core');
+const github = require('@actions/github');
+const conventionalCommitTypes = require('conventional-commit-types');
+const parseConfig = require('./src/parseConfig');
+const postComment = require('./src/postComment');
 const validateCommitMessages = require('./src/validateCommitMessages');
 const validatePrTitleOrSingleCommit = require('./src/validatePrTitleOrSingleCommit');
 
-let validationErrorPrTitleOrSingleCommit;
-let validationErrorCommitMessages;
+function conventionalCommitSummary(types) {
+  const defaultTypes = Object.keys(conventionalCommitTypes.types);
+  if (!types) types = defaultTypes;
+  let summary =
+    '---\n\nPlease refer to [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) for more information.\n\n';
+  summary += `Available PR/commit types:\n| Type | Description |\n| --- | --- |\n${types
+    .map((type) => {
+      let bullet = `| ${type}`;
+
+      if (types === defaultTypes) {
+        bullet += `  | ${conventionalCommitTypes.types[type].description}  |`;
+      }
+
+      return bullet;
+    })
+    .join('\n')}`;
+  return summary;
+}
 
 async function run() {
+  const commentHeader = '<!--ASPR-CM-f8854b54-0e83-4d76-af47-eef3cc47024d-->';
+
+  let validate_pr_title_success, validate_pr_title_message;
   try {
-    await validatePrTitleOrSingleCommit();
+    [validate_pr_title_success, validate_pr_title_message] =
+      await validatePrTitleOrSingleCommit();
   } catch (e) {
-    validationErrorPrTitleOrSingleCommit = e;
+    core.setFailed(e.message);
   }
 
+  let validate_commits_success, validate_commits_message;
   try {
-    await validateCommitMessages();
+    [validate_commits_success, validate_commits_message] =
+      await validateCommitMessages();
   } catch (e) {
-    validationErrorCommitMessages = e;
+    core.setFailed(e.message);
   }
 
-  if (validationErrorPrTitleOrSingleCommit && validationErrorCommitMessages) {
+  const {types, githubBaseUrl} = parseConfig();
+
+  const context = github.context;
+  const octokit = github.getOctokit(process.env.GITHUB_TOKEN, {
+    baseUrl: githubBaseUrl
+  });
+
+  let comment;
+  if (!validate_pr_title_success && !validate_commits_success) {
+    // validate_pr_title_message = '❌ ' + validate_pr_title_message;
+    // validate_commits_message = '❌ ' + validate_commits_message;
+    comment =
+      '❌  Conventional Commit information is missing. Please resolve *either* of the following issues:\n';
+  } else if (!validate_pr_title_success) {
+    comment =
+      '👍 Conventional Commit information was found in the commits, but not in PR title. The merge can proceed.';
+    validate_pr_title_message = '⚠ ' + validate_pr_title_message;
+  } else if (!validate_commits_success) {
+    comment =
+      '⚠ Conventional Commit information was found in the PR title, but not the commits. The merge can proceed in *Squash and Merge* mode only.';
+    validate_commits_message = '⚠ ' + validate_commits_message;
+  } else {
+    comment =
+      '👍 Conventional Commit information was found in both the PR title *and* the commits. The merge can proceed.';
+  }
+
+  comment +=
+    '\n\n* ' +
+    validate_pr_title_message +
+    '\n* ' +
+    validate_commits_message +
+    '\n\n' +
+    conventionalCommitSummary(types);
+
+  await postComment(octokit, context, commentHeader, comment);
+
+  if (!validate_pr_title_success && !validate_commits_success) {
     core.setFailed(
-      validationErrorPrTitleOrSingleCommit.message +
-        '\n\n' +
-        validationErrorCommitMessages.message
+      validate_pr_title_message + '\n\n' + validate_commits_message
     );
   }
 }

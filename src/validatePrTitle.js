@@ -14,44 +14,28 @@ module.exports = async function validatePrTitle(
   const {parserOpts} = await conventionalCommitsConfig();
   const result = parser(prTitle, parserOpts);
 
-  function printAvailableTypes() {
-    return `Available types:\n| Type | Description |\n| --- | --- |\n${types
-      .map((type) => {
-        let bullet = `| ${type}`;
-
-        if (types === defaultTypes) {
-          bullet += `  | ${conventionalCommitTypes.types[type].description}  |`;
-        }
-
-        return bullet;
-      })
-      .join('\n')}`;
-  }
-
   function isUnknownScope(s) {
     return scopes && !scopes.includes(s);
   }
 
   if (!result.type) {
     throw new Error(
-      `❌ No release type found in pull request title "${prTitle}". Add a prefix to indicate what kind of release this pull request corresponds to. For reference, see https://www.conventionalcommits.org/\n\n${printAvailableTypes()}`
+      `No PR type found in the title "${prTitle}". Format the PR title according to the Conventional Commits convention.\n\n  For example, set the PR title similar to *"**fix**: fixed the bug 123"*\n\n`
     );
   }
 
   if (!result.subject) {
-    throw new Error(`❌ No subject found in pull request title "${prTitle}".`);
+    throw new Error(`No subject found in pull request title "${prTitle}".`);
   }
 
   if (!types.includes(result.type)) {
     throw new Error(
-      `❌ Unknown release type "${
-        result.type
-      }" found in pull request title "${prTitle}". \n\n${printAvailableTypes()}`
+      `Unknown release type "${result.type}" found in pull request title "${prTitle}".`
     );
   }
 
   if (requireScope && !result.scope) {
-    let msg = `❌ No scope found in pull request title "${prTitle}".`;
+    let msg = `No scope found in pull request title "${prTitle}".`;
     if (scopes) {
       msg += ` Use one of the available scopes: ${scopes.join(', ')}.`;
     }
@@ -65,7 +49,7 @@ module.exports = async function validatePrTitle(
   const unknownScopes = givenScopes ? givenScopes.filter(isUnknownScope) : [];
   if (scopes && unknownScopes.length > 0) {
     throw new Error(
-      `❌ Unknown ${
+      `Unknown ${
         unknownScopes.length > 1 ? 'scopes' : 'scope'
       } "${unknownScopes.join(
         ','
@@ -91,14 +75,14 @@ module.exports = async function validatePrTitle(
 
     if (!match) {
       throwSubjectPatternError(
-        `❌ The subject "${result.subject}" found in pull request title "${prTitle}" doesn't match the configured pattern "${subjectPattern}".`
+        `The subject "${result.subject}" found in pull request title "${prTitle}" doesn't match the configured pattern "${subjectPattern}".`
       );
     }
 
     const matchedPart = match[0];
     if (matchedPart.length !== result.subject.length) {
       throwSubjectPatternError(
-        `❌ The subject "${result.subject}" found in pull request title "${prTitle}" isn't an exact match for the configured pattern "${subjectPattern}". Please provide a subject that matches the whole pattern exactly.`
+        `The subject "${result.subject}" found in pull request title "${prTitle}" isn't an exact match for the configured pattern "${subjectPattern}". Please provide a subject that matches the whole pattern exactly.`
       );
     }
   }

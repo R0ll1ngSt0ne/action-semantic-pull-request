@@ -1,6 +1,5 @@
 const github = require('@actions/github');
 const parseConfig = require('./parseConfig');
-const postComment = require('./postComment');
 const validatePrTitle = require('./validatePrTitle');
 
 module.exports = async function validatePrTitleOrSingleCommit() {
@@ -14,8 +13,6 @@ module.exports = async function validatePrTitleOrSingleCommit() {
     validateSingleCommit,
     githubBaseUrl
   } = parseConfig();
-  const commentHeader = '<!--ASPR-PT-d607a30b-cbe7-4a1b-b90b-94bf57c9f90d-->';
-
   const client = github.getOctokit(process.env.GITHUB_TOKEN, {
     baseUrl: githubBaseUrl
   });
@@ -41,7 +38,7 @@ module.exports = async function validatePrTitleOrSingleCommit() {
   });
 
   // Pull requests that start with "[WIP] " are excluded from the check.
-  const isWip = wip && /^\[WIP\]\s/.test(pullRequest.title);
+  const isWip = wip && pullRequest.title.startsWith('[WIP]');
 
   let validationError;
   if (!isWip) {
@@ -93,9 +90,10 @@ module.exports = async function validatePrTitleOrSingleCommit() {
               subjectPatternError
             });
           } catch (error) {
-            throw new Error(
+            return [
+              false,
               "❌ Pull request has only one commit and it's not semantic; this may lead to a non-semantic commit in the base branch (see https://github.community/t/how-to-change-the-default-squash-merge-commit-message/1155). Amend the commit message to match the pull request title, or add another commit."
-            );
+            ];
           }
         }
       }
@@ -127,19 +125,11 @@ module.exports = async function validatePrTitleOrSingleCommit() {
   }
 
   if (!isWip && validationError) {
-    await postComment(
-      client,
-      github.context,
-      commentHeader,
-      validationError.message
-    );
-    throw validationError;
+    return [false, validationError.message];
   }
 
-  await postComment(
-    client,
-    github.context,
-    commentHeader,
-    '👍 Pull request title is semantic and can be used for Squash and Merge commits'
-  );
+  return [
+    true,
+    '👍 PR title follows the Conventional Commit convention and thus be used for Squash and Merge commits'
+  ];
 };
