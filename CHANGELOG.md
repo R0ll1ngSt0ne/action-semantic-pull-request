@@ -1,5 +1,12 @@
 # Changelog
 
+### [3.8.2](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/compare/v3.8.1...v3.8.2) (2022-05-27)
+
+
+### Bug Fixes
+
+* made messaging clearer / more concise ([db71962](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/commit/db71962116b6ea87500070ac9789daaaeac01226))
+
 ### [3.8.1](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/compare/v3.8.0...v3.8.1) (2022-05-24)
 
 
