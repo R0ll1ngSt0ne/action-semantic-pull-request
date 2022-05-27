@@ -140,21 +140,21 @@ function getMessage(
   }
   if (stats.unset > 0) {
     message.push(
-      `❕ Some commits are not using the Conventional Commits convention. They will be ignored in the version management.`
+      `ℹ Some commits are not using the Conventional Commits convention. They will be ignored in the version management.`
     );
   }
 
   if (message.length === 0) {
     message.push(
-      `👍  All commits are using the Conventional Commits convention.`
+      `✔ All commits are using the Conventional Commits convention.`
     );
   }
 
-  message.push(`---
-| Target Version | ${version} |
-| -------------- | ---------- |
-| Last version   | ${lastVersion} |
-    `);
-  message.push(`${reason}`);
+  message.push(
+    `🚀 Release target: ${lastVersion} 🡢 ${version} &nbsp;&nbsp;(*${reason.replace(
+      'There are ',
+      ''
+    )}*)`
+  );
   return message.join('\n');
 }

@@ -9,11 +9,10 @@ const validatePrTitleOrSingleCommit = require('./src/validatePrTitleOrSingleComm
 function conventionalCommitSummary(types) {
   const defaultTypes = Object.keys(conventionalCommitTypes.types);
   if (!types) types = defaultTypes;
-  let summary =
-    '---\n\nPlease refer to [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) for more information.\n\n';
-  summary += `Available PR/commit types:\n| Type | Description |\n| --- | --- |\n${types
+  let summary = '---\n\n';
+  const types_table = types
     .map((type) => {
-      let bullet = `| ${type}`;
+      let bullet = `  | ${type}`;
 
       if (types === defaultTypes) {
         bullet += `  | ${conventionalCommitTypes.types[type].description}  |`;
@@ -21,7 +20,30 @@ function conventionalCommitSummary(types) {
 
       return bullet;
     })
-    .join('\n')}`;
+    .join('\n');
+  summary += `<details>
+  <summary>More information on Conventional Commits:</summary>
+  &nbsp;\n\n
+  The commit message should be structured as follows:
+
+  \`\`\`
+  <type>[optional scope]: <description>
+  
+  [optional body]
+  
+  [optional footer(s)]
+  \`\`\`  
+    
+  The available commit types are:
+  | Type | Description |\n| --- | --- |\n${types_table}
+  
+  To indicate that the change is *BREAKING* (i.e. changes API contracts for example), add "**!**" after the type.
+  
+  For example: *"**feat!**: added some new parameters to API that break existing unit tests"*
+  
+  Please refer to [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) for more information.
+</details>`;
+
   return summary;
 }
 
@@ -59,15 +81,15 @@ async function run() {
       '❌  Conventional Commit information is missing. Please resolve *either* of the following issues:\n';
   } else if (!validate_pr_title_success) {
     comment =
-      '👍 Conventional Commit information was found in the commits, but not in PR title. The merge can proceed.';
+      '✔ Conventional Commit information was found in the commits, but not in PR title. Merge via *"Create a merge Commit"* mode only.';
     validate_pr_title_message = '⚠ ' + validate_pr_title_message;
   } else if (!validate_commits_success) {
     comment =
-      '⚠ Conventional Commit information was found in the PR title, but not the commits. The merge can proceed in *Squash and Merge* mode only.';
+      '⚠ Conventional Commit information was found in the PR title, but not the commits. Merge via *"Squash and merge"* mode only.';
     validate_commits_message = '⚠ ' + validate_commits_message;
   } else {
     comment =
-      '👍 Conventional Commit information was found in both the PR title *and* the commits. The merge can proceed.';
+      '✔ Conventional Commit information was found in both the PR title *and* the commits. The merge can proceed using any method.';
   }
 
   comment +=
