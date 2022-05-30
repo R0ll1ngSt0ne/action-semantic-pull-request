@@ -1,5 +1,12 @@
 # Changelog
 
+### [3.8.4](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/compare/v3.8.3...v3.8.4) (2022-05-30)
+
+
+### Bug Fixes
+
+* version calculation including PR title ([6805f44](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/commit/6805f44254841413a557f428bb5017f95284baaa))
+
 ### [3.8.3](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/compare/v3.8.2...v3.8.3) (2022-05-30)
 
 
