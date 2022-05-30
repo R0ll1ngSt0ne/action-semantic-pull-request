@@ -53,9 +53,7 @@ module.exports = async function validateCommitMessages() {
 
   const includeCommits = pullCommits.map((commit) => commit.sha);
 
-  const recommendation_for_version = await promisify(
-    conventionalRecommendedBump
-  )({
+  const recommendation = await promisify(conventionalRecommendedBump)({
     //the preset cannot be used from string in an action due to missing lookups in node_modules
     config: conventionalPresetConfig,
     whatBump(commits) {
@@ -65,22 +63,6 @@ module.exports = async function validateCommitMessages() {
             includeCommits.includes(commit.hash) ||
             commit.body === '4621fd21-37a6-4dd0-b3f5-a71c28bc2b01'
         )
-      );
-    }
-  });
-
-  if (!recommendation_for_version) {
-    throw new Error('Unable to retrieve commit information');
-  }
-
-  const release_type_for_version = recommendation_for_version.releaseType;
-
-  const recommendation = await promisify(conventionalRecommendedBump)({
-    //the preset cannot be used from string in an action due to missing lookups in node_modules
-    config: conventionalPresetConfig,
-    whatBump(commits) {
-      return presetBumper().whatBump(
-        commits.filter((commit) => includeCommits.includes(commit.hash))
       );
     }
   });
@@ -103,7 +85,7 @@ module.exports = async function validateCommitMessages() {
       const lastVersionObject = semverParse(lastTag);
       lastVersion = lastVersionObject.version;
       if (version_altering_commits > 0) {
-        version = semverInc(lastVersion, release_type_for_version);
+        version = semverInc(lastVersion, recommendation.releaseType);
       } else {
         version = lastVersion;
       }
