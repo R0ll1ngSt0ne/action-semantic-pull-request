@@ -29,7 +29,7 @@ function conventionalCommitSummary(types) {
     })
     .join('\n');
   summary += `<details>
-  <summary>More information on Conventional Commits:</summary>
+  <summary>More information on the <i>Conventional Commits</i> convention:</summary>
   &nbsp;\n\n
   The commit message should be structured as follows:
 
@@ -85,18 +85,18 @@ async function run() {
     // validate_pr_title_message = '❌ ' + validate_pr_title_message;
     // validate_commits_message = '❌ ' + validate_commits_message;
     comment =
-      '❌  Conventional Commit information is missing. Please resolve *either* of the following issues:\n';
+      '❌  *Conventional Commit* information is missing. Please resolve *either* of the following issues:\n';
   } else if (!validate_pr_title_success) {
     comment =
-      '✔ Conventional Commit information was found in the commits, but not in PR title. Merge via *"Create a merge Commit"* mode only.';
+      '✔ *Conventional Commit* information was found in the commits, but not in PR title. Merge via *"Create a merge Commit"* mode only.';
     validate_pr_title_message = '⚠ ' + validate_pr_title_message;
   } else if (!validate_commits_success) {
     comment =
-      '⚠ Conventional Commit information was found in the PR title, but not the commits. Merge via *"Squash and merge"* mode only.';
+      '⚠ *Conventional Commit* information was found in the PR title, but not the commits. Merge via *"Squash and merge"* mode only.';
     validate_commits_message = '⚠ ' + validate_commits_message;
   } else {
     comment =
-      '✔ Conventional Commit information was found in both the PR title *and* the commits. The merge can proceed using any method.';
+      '✔ *Conventional Commit* information was found in both the PR title *and* the commits. The merge can proceed using any method.';
   }
 
   comment +=
@@ -49173,7 +49173,11 @@ module.exports = async function validateCommitMessages() {
     config: conventionalPresetConfig,
     whatBump(commits) {
       return presetBumper().whatBump(
-        commits.filter((commit) => includeCommits.includes(commit.hash))
+        commits.filter(
+          (commit) =>
+            includeCommits.includes(commit.hash) ||
+            commit.body === '4621fd21-37a6-4dd0-b3f5-a71c28bc2b01'
+        )
       );
     }
   });
@@ -49215,7 +49219,7 @@ module.exports = async function validateCommitMessages() {
   ) {
     return [
       false,
-      `No commit messages compliant with the Conventional Commits convention were found. Add at least one such commit.\n\n  For example, push a commit with a message similar to: *"**feat**: added feature 345"*\n\n`
+      `No commit messages compliant with the convention were found. Add at least one such commit.\n\n  For example, push a commit with a message similar to: *"**feat**: added feature 345"*\n\n`
     ];
   }
 
@@ -49255,14 +49259,12 @@ function getMessage(
   }
   if (stats.unset > 0) {
     message.push(
-      `ℹ Some commits are not using the Conventional Commits convention. They will be ignored in the version management.`
+      `ℹ Some commits are not following the convention. They will be ignored in the version management.`
     );
   }
 
   if (message.length === 0) {
-    message.push(
-      `✔ All commits are using the Conventional Commits convention.`
-    );
+    message.push(`✔ All commits are following the convention.`);
   }
 
   message.push(
@@ -49302,7 +49304,7 @@ module.exports = async function validatePrTitle(
 
   if (!result.type) {
     throw new Error(
-      `No PR type found in the title "${prTitle}". Format the PR title according to the Conventional Commits convention.\n\n  For example, set the PR title similar to *"**fix**: fixed the bug 123"*\n\n`
+      `No PR type found in the title "${prTitle}". Format the PR title according to the convention.\n\n  For example, set the PR title similar to *"**fix**: fixed the bug 123"*\n\n`
     );
   }
 
@@ -49508,7 +49510,7 @@ module.exports = async function validatePrTitleOrSingleCommit() {
 
   return [
     true,
-    '👍 PR title follows the Conventional Commit convention and thus be used for Squash and Merge commits'
+    '✔  PR title follows the convention and can be used for *Squash and Merge* commits'
   ];
 };
 
