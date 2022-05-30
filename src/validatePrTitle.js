@@ -20,7 +20,7 @@ module.exports = async function validatePrTitle(
 
   if (!result.type) {
     throw new Error(
-      `No PR type found in the title "${prTitle}". Format the PR title according to the Conventional Commits convention.\n\n  For example, set the PR title similar to *"**fix**: fixed the bug 123"*\n\n`
+      `No PR type found in the title "${prTitle}". Format the PR title according to the convention.\n\n  For example, set the PR title similar to *"**fix**: fixed the bug 123"*\n\n`
     );
   }
 

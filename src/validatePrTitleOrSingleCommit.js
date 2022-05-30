@@ -130,6 +130,6 @@ module.exports = async function validatePrTitleOrSingleCommit() {
 
   return [
     true,
-    '👍 PR title follows the Conventional Commit convention and thus be used for Squash and Merge commits'
+    '✔  PR title follows the convention and can be used for *Squash and Merge* commits'
   ];
 };

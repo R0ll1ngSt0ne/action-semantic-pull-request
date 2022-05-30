@@ -22,7 +22,7 @@ function conventionalCommitSummary(types) {
     })
     .join('\n');
   summary += `<details>
-  <summary>More information on Conventional Commits:</summary>
+  <summary>More information on the <i>Conventional Commits</i> convention:</summary>
   &nbsp;\n\n
   The commit message should be structured as follows:
 
@@ -78,18 +78,18 @@ async function run() {
     // validate_pr_title_message = '❌ ' + validate_pr_title_message;
     // validate_commits_message = '❌ ' + validate_commits_message;
     comment =
-      '❌  Conventional Commit information is missing. Please resolve *either* of the following issues:\n';
+      '❌  *Conventional Commit* information is missing. Please resolve *either* of the following issues:\n';
   } else if (!validate_pr_title_success) {
     comment =
-      '✔ Conventional Commit information was found in the commits, but not in PR title. Merge via *"Create a merge Commit"* mode only.';
+      '✔ *Conventional Commit* information was found in the commits, but not in PR title. Merge via *"Create a merge Commit"* mode only.';
     validate_pr_title_message = '⚠ ' + validate_pr_title_message;
   } else if (!validate_commits_success) {
     comment =
-      '⚠ Conventional Commit information was found in the PR title, but not the commits. Merge via *"Squash and merge"* mode only.';
+      '⚠ *Conventional Commit* information was found in the PR title, but not the commits. Merge via *"Squash and merge"* mode only.';
     validate_commits_message = '⚠ ' + validate_commits_message;
   } else {
     comment =
-      '✔ Conventional Commit information was found in both the PR title *and* the commits. The merge can proceed using any method.';
+      '✔ *Conventional Commit* information was found in both the PR title *and* the commits. The merge can proceed using any method.';
   }
 
   comment +=

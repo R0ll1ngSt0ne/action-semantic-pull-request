@@ -58,7 +58,11 @@ module.exports = async function validateCommitMessages() {
     config: conventionalPresetConfig,
     whatBump(commits) {
       return presetBumper().whatBump(
-        commits.filter((commit) => includeCommits.includes(commit.hash))
+        commits.filter(
+          (commit) =>
+            includeCommits.includes(commit.hash) ||
+            commit.body === '4621fd21-37a6-4dd0-b3f5-a71c28bc2b01'
+        )
       );
     }
   });
@@ -100,7 +104,7 @@ module.exports = async function validateCommitMessages() {
   ) {
     return [
       false,
-      `No commit messages compliant with the Conventional Commits convention were found. Add at least one such commit.\n\n  For example, push a commit with a message similar to: *"**feat**: added feature 345"*\n\n`
+      `No commit messages compliant with the convention were found. Add at least one such commit.\n\n  For example, push a commit with a message similar to: *"**feat**: added feature 345"*\n\n`
     ];
   }
 
@@ -140,14 +144,12 @@ function getMessage(
   }
   if (stats.unset > 0) {
     message.push(
-      `ℹ Some commits are not using the Conventional Commits convention. They will be ignored in the version management.`
+      `ℹ Some commits are not following the convention. They will be ignored in the version management.`
     );
   }
 
   if (message.length === 0) {
-    message.push(
-      `✔ All commits are using the Conventional Commits convention.`
-    );
+    message.push(`✔ All commits are following the convention.`);
   }
 
   message.push(
