@@ -5,6 +5,7 @@ const parseConfig = require('./src/parseConfig');
 const postComment = require('./src/postComment');
 const validateCommitMessages = require('./src/validateCommitMessages');
 const validatePrTitleOrSingleCommit = require('./src/validatePrTitleOrSingleCommit');
+const validateVersion = require('./src/validateVersion');
 
 function conventionalCommitSummary(types) {
   const defaultTypes = Object.keys(conventionalCommitTypes.types);
@@ -66,6 +67,14 @@ async function run() {
     core.setFailed(e.message);
   }
 
+  let validate_version_success, validate_version_message;
+  try {
+    [validate_version_success, validate_version_message] =
+      await validateVersion();
+  } catch (e) {
+    core.setFailed(e.message);
+  }
+
   const {types, githubBaseUrl} = parseConfig();
 
   const context = github.context;
@@ -93,12 +102,16 @@ async function run() {
   }
 
   comment +=
-    '\n\n* ' +
-    validate_pr_title_message +
-    '\n* ' +
-    validate_commits_message +
-    '\n\n' +
-    conventionalCommitSummary(types);
+    '\n\n* ' + validate_pr_title_message + '\n* ' + validate_commits_message;
+
+  if (
+    validate_version_success &&
+    (validate_pr_title_success || validate_commits_success)
+  ) {
+    comment += '\n\n ' + validate_version_message;
+  }
+
+  comment += '\n\n' + conventionalCommitSummary(types);
 
   await postComment(octokit, context, commentHeader, comment);
 
