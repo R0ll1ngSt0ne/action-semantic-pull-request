@@ -12,6 +12,7 @@ const parseConfig = __nccwpck_require__(5194);
 const postComment = __nccwpck_require__(371);
 const validateCommitMessages = __nccwpck_require__(3209);
 const validatePrTitleOrSingleCommit = __nccwpck_require__(9772);
+const validateVersion = __nccwpck_require__(2171);
 
 function conventionalCommitSummary(types) {
   const defaultTypes = Object.keys(conventionalCommitTypes.types);
@@ -73,6 +74,14 @@ async function run() {
     core.setFailed(e.message);
   }
 
+  let validate_version_success, validate_version_message;
+  try {
+    [validate_version_success, validate_version_message] =
+      await validateVersion();
+  } catch (e) {
+    core.setFailed(e.message);
+  }
+
   const {types, githubBaseUrl} = parseConfig();
 
   const context = github.context;
@@ -100,12 +109,16 @@ async function run() {
   }
 
   comment +=
-    '\n\n* ' +
-    validate_pr_title_message +
-    '\n* ' +
-    validate_commits_message +
-    '\n\n' +
-    conventionalCommitSummary(types);
+    '\n\n* ' + validate_pr_title_message + '\n* ' + validate_commits_message;
+
+  if (
+    validate_version_success &&
+    (validate_pr_title_success || validate_commits_success)
+  ) {
+    comment += '\n\n ' + validate_version_message;
+  }
+
+  comment += '\n\n' + conventionalCommitSummary(types);
 
   await postComment(octokit, context, commentHeader, comment);
 
@@ -48985,6 +48998,60 @@ module.exports = function formatMessage(message, values) {
 
 /***/ }),
 
+/***/ 9704:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const {promisify} = __nccwpck_require__(1669);
+const github = __nccwpck_require__(5438);
+const conventionalPresetConfig = __nccwpck_require__(9061);
+const presetBumper = __nccwpck_require__(4372);
+const conventionalRecommendedBump = __nccwpck_require__(7011);
+const parseConfig = __nccwpck_require__(5194);
+
+module.exports = async function getRecommendation(includeTempCommit) {
+  const {githubBaseUrl} = parseConfig();
+
+  const context = github.context;
+  const octokit = github.getOctokit(process.env.GITHUB_TOKEN, {
+    baseUrl: githubBaseUrl
+  });
+
+  const commitNumbers = context.payload.pull_request.commits;
+
+  const pullCommits = await octokit.paginate(octokit.pulls.listCommits, {
+    repo: context.repo.repo,
+    owner: context.repo.owner,
+    pull_number: context.payload.pull_request.number,
+    per_page: 100
+  });
+
+  const includeCommits = pullCommits.map((commit) => commit.sha);
+
+  const recommendation = await promisify(conventionalRecommendedBump)({
+    //the preset cannot be used from string in an action due to missing lookups in node_modules
+    config: conventionalPresetConfig,
+    whatBump(commits) {
+      return presetBumper().whatBump(
+        commits.filter(
+          (commit) =>
+            includeCommits.includes(commit.hash) ||
+            (includeTempCommit &&
+              commit.body === '4621fd21-37a6-4dd0-b3f5-a71c28bc2b01')
+        )
+      );
+    }
+  });
+
+  if (!recommendation) {
+    throw new Error('Unable to retrieve commit information');
+  }
+
+  return [commitNumbers, recommendation];
+};
+
+
+/***/ }),
+
 /***/ 5194:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -49114,118 +49181,14 @@ module.exports = function postComment(
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 /*eslint no-undef: 0*/
-/**
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; under version 2
- * of the License (non-upgradable).
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
- *
- * Copyright (c) 2020 (original work) Open Assessment Technologies SA ;
- */
-const {promisify} = __nccwpck_require__(1669);
 const core = __nccwpck_require__(2186);
-const github = __nccwpck_require__(5438);
-const conventionalPresetConfig = __nccwpck_require__(9061);
-const presetBumper = __nccwpck_require__(4372);
-const conventionalRecommendedBump = __nccwpck_require__(7011);
-const gitSemverTags = __nccwpck_require__(2408);
-const semverInc = __nccwpck_require__(900);
-const semverParse = __nccwpck_require__(5925);
-const parseConfig = __nccwpck_require__(5194);
+const getRecommendation = __nccwpck_require__(9704);
 
 //PR stops listing commits after this limit
 const commitNumbersThreshold = 250;
 
-/**
- * The main entry point
- * @return {Promise}
- */
 module.exports = async function validateCommitMessages() {
-  const {githubBaseUrl} = parseConfig();
-
-  const context = github.context;
-  const octokit = github.getOctokit(process.env.GITHUB_TOKEN, {
-    baseUrl: githubBaseUrl
-  });
-
-  const commitNumbers = context.payload.pull_request.commits;
-
-  const pullCommits = await octokit.paginate(octokit.pulls.listCommits, {
-    repo: context.repo.repo,
-    owner: context.repo.owner,
-    pull_number: context.payload.pull_request.number,
-    per_page: 100
-  });
-
-  const includeCommits = pullCommits.map((commit) => commit.sha);
-
-  const recommendation_for_version = await promisify(
-    conventionalRecommendedBump
-  )({
-    //the preset cannot be used from string in an action due to missing lookups in node_modules
-    config: conventionalPresetConfig,
-    whatBump(commits) {
-      return presetBumper().whatBump(
-        commits.filter(
-          (commit) =>
-            includeCommits.includes(commit.hash) ||
-            commit.body === '4621fd21-37a6-4dd0-b3f5-a71c28bc2b01'
-        )
-      );
-    }
-  });
-
-  if (!recommendation_for_version) {
-    throw new Error('Unable to retrieve commit information');
-  }
-
-  const release_type_for_version = recommendation_for_version.releaseType;
-
-  const recommendation = await promisify(conventionalRecommendedBump)({
-    //the preset cannot be used from string in an action due to missing lookups in node_modules
-    config: conventionalPresetConfig,
-    whatBump(commits) {
-      return presetBumper().whatBump(
-        commits.filter((commit) => includeCommits.includes(commit.hash))
-      );
-    }
-  });
-
-  if (!recommendation) {
-    throw new Error('Unable to retrieve commit information');
-  }
-
-  const tags = await promisify(gitSemverTags)();
-  const version_altering_commits =
-    recommendation.stats.breakings +
-    recommendation.stats.features +
-    recommendation.stats.fixes;
-
-  let lastVersion;
-  let version = '1.0.0';
-  if (tags && tags.length > 0) {
-    const lastTag = tags[0];
-    if (lastTag) {
-      const lastVersionObject = semverParse(lastTag);
-      lastVersion = lastVersionObject.version;
-      if (version_altering_commits > 0) {
-        version = semverInc(lastVersion, release_type_for_version);
-      } else {
-        version = lastVersion;
-      }
-    }
-  }
-
-  core.setOutput('version', version);
+  [commitNumbers, recommendation] = await getRecommendation(false);
 
   core.info(JSON.stringify(recommendation, null, ' '));
 
@@ -49241,10 +49204,7 @@ module.exports = async function validateCommitMessages() {
     ];
   }
 
-  return [
-    true,
-    getMessage(recommendation, lastVersion, version, commitNumbers)
-  ];
+  return [true, getMessage(recommendation, commitNumbers)];
 };
 
 /**
@@ -49252,18 +49212,10 @@ module.exports = async function validateCommitMessages() {
  * @param {Object} recommendation
  * @param {Object} recommendation.stats
  * @param {Number} recommendation.level
- * @param {String} recommendation.reason
- * @param {String} lastVersion
- * @param {String} version
  * @param {Number} [commitNumbers=0]
  * @return {String} the message, in markdown format
  */
-function getMessage(
-  {stats, level, reason} = {},
-  lastVersion,
-  version,
-  commitNumbers = 0
-) {
+function getMessage({stats, level} = {}, commitNumbers = 0) {
   const message = [];
   if (commitNumbers > commitNumbersThreshold) {
     message.push(
@@ -49285,12 +49237,6 @@ function getMessage(
     message.push(`✔ All commits are following the convention.`);
   }
 
-  message.push(
-    `🚀 Release target: ${lastVersion} 🡢 ${version} &nbsp;&nbsp;(*${reason.replace(
-      'There are ',
-      ''
-    )}*)`
-  );
   return message.join('\n');
 }
 
@@ -49529,6 +49475,54 @@ module.exports = async function validatePrTitleOrSingleCommit() {
   return [
     true,
     '✔  PR title follows the convention and can be used for *Squash and Merge* commits'
+  ];
+};
+
+
+/***/ }),
+
+/***/ 2171:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const {promisify} = __nccwpck_require__(1669);
+const core = __nccwpck_require__(2186);
+const gitSemverTags = __nccwpck_require__(2408);
+const semverInc = __nccwpck_require__(900);
+const semverParse = __nccwpck_require__(5925);
+const getRecommendation = __nccwpck_require__(9704);
+
+module.exports = async function validateVersion() {
+  const [, recommendation] = await getRecommendation(true);
+
+  const tags = await promisify(gitSemverTags)();
+  const version_altering_commits =
+    recommendation.stats.breakings +
+    recommendation.stats.features +
+    recommendation.stats.fixes;
+
+  let lastVersion;
+  let version = '1.0.0';
+  if (tags && tags.length > 0) {
+    const lastTag = tags[0];
+    if (lastTag) {
+      const lastVersionObject = semverParse(lastTag);
+      lastVersion = lastVersionObject.version;
+      if (version_altering_commits > 0) {
+        version = semverInc(lastVersion, recommendation.releaseType);
+      } else {
+        version = lastVersion;
+      }
+    }
+  }
+
+  core.setOutput('version', version);
+
+  return [
+    true,
+    `🚀 Release target: ${lastVersion} 🡢 ${version} &nbsp;&nbsp;(*${recommendation.reason.replace(
+      'There are ',
+      ''
+    )}*)`
   ];
 };
 

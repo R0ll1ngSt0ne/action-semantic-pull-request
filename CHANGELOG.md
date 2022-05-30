@@ -1,5 +1,17 @@
 # Changelog
 
+### [3.8.5](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/compare/v3.8.4...v3.8.5) (2022-05-30)
+
+
+### Bug Fixes
+
+* separated target version validation from commit messages ([649c28a](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/commit/649c28a6cc2eb6c9c3a31a231dad13f420c99d50))
+
+
+### Reverts
+
+* Revert "fix: version calculation including PR title" ([05eafd2](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/commit/05eafd2e1238bab685b185b711407ae4bb29e4eb))
+
 ### [3.8.4](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/compare/v3.8.3...v3.8.4) (2022-05-30)
 
 
