@@ -1,5 +1,12 @@
 # Changelog
 
+### [3.8.6](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/compare/v3.8.5...v3.8.6) (2022-05-31)
+
+
+### Bug Fixes
+
+* added unchanged version warning, ignoring commits with invalid type ([6ee7489](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/commit/6ee7489c119661734839c8014e9ee14b79c0dab0))
+
 ### [3.8.5](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/compare/v3.8.4...v3.8.5) (2022-05-30)
 
 

@@ -49005,11 +49005,16 @@ const {promisify} = __nccwpck_require__(1669);
 const github = __nccwpck_require__(5438);
 const conventionalPresetConfig = __nccwpck_require__(9061);
 const presetBumper = __nccwpck_require__(4372);
+const conventionalCommitTypes = __nccwpck_require__(614);
 const conventionalRecommendedBump = __nccwpck_require__(7011);
 const parseConfig = __nccwpck_require__(5194);
 
 module.exports = async function getRecommendation(includeTempCommit) {
-  const {githubBaseUrl} = parseConfig();
+  // eslint-disable-next-line prefer-const
+  let {types, githubBaseUrl} = parseConfig();
+
+  const defaultTypes = Object.keys(conventionalCommitTypes.types);
+  if (!types) types = defaultTypes;
 
   const context = github.context;
   const octokit = github.getOctokit(process.env.GITHUB_TOKEN, {
@@ -49031,8 +49036,17 @@ module.exports = async function getRecommendation(includeTempCommit) {
     //the preset cannot be used from string in an action due to missing lookups in node_modules
     config: conventionalPresetConfig,
     whatBump(commits) {
+      const commits_copy = [];
+      for (let i = 0; i < commits.length; i++) {
+        const commit = commits[i];
+        if (commit.type && !types.includes(commit.type)) {
+          commit.type = null;
+        }
+        commits_copy[i] = commit;
+      }
+
       return presetBumper().whatBump(
-        commits.filter(
+        commits_copy.filter(
           (commit) =>
             includeCommits.includes(commit.hash) ||
             (includeTempCommit &&
@@ -49188,13 +49202,13 @@ const getRecommendation = __nccwpck_require__(9704);
 const commitNumbersThreshold = 250;
 
 module.exports = async function validateCommitMessages() {
-  [commitNumbers, recommendation] = await getRecommendation(false);
+  const [commitNumbers, recommendation] = await getRecommendation(false);
 
   core.info(JSON.stringify(recommendation, null, ' '));
 
   if (
     recommendation.stats &&
-    recommendation.stats.commits > 0 &&
+    recommendation.stats.commits >= 0 &&
     recommendation.stats.unset + recommendation.stats.merge >=
       recommendation.stats.commits
   ) {
@@ -49517,13 +49531,17 @@ module.exports = async function validateVersion() {
 
   core.setOutput('version', version);
 
-  return [
-    true,
-    `🚀 Release target: ${lastVersion} 🡢 ${version} &nbsp;&nbsp;(*${recommendation.reason.replace(
-      'There are ',
-      ''
-    )}*)`
-  ];
+  let message = `🚀 Release target: ${lastVersion} 🡢 ${version} &nbsp;&nbsp;(*${recommendation.reason.replace(
+    'There are ',
+    ''
+  )}*)`;
+
+  if (lastVersion === version) {
+    message +=
+      '\n* ⚠ No *important* changes were declared - the version will not change and release will not be triggered.\n\n  To address this, declare some "**feat**", "**fix**" or **BREAKING** changes';
+  }
+
+  return [true, message];
 };
 
 
