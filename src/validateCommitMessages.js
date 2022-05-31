@@ -6,13 +6,13 @@ const getRecommendation = require('./getRecommendation');
 const commitNumbersThreshold = 250;
 
 module.exports = async function validateCommitMessages() {
-  [commitNumbers, recommendation] = await getRecommendation(false);
+  const [commitNumbers, recommendation] = await getRecommendation(false);
 
   core.info(JSON.stringify(recommendation, null, ' '));
 
   if (
     recommendation.stats &&
-    recommendation.stats.commits > 0 &&
+    recommendation.stats.commits >= 0 &&
     recommendation.stats.unset + recommendation.stats.merge >=
       recommendation.stats.commits
   ) {

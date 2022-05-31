@@ -31,11 +31,15 @@ module.exports = async function validateVersion() {
 
   core.setOutput('version', version);
 
-  return [
-    true,
-    `🚀 Release target: ${lastVersion} 🡢 ${version} &nbsp;&nbsp;(*${recommendation.reason.replace(
-      'There are ',
-      ''
-    )}*)`
-  ];
+  let message = `🚀 Release target: ${lastVersion} 🡢 ${version} &nbsp;&nbsp;(*${recommendation.reason.replace(
+    'There are ',
+    ''
+  )}*)`;
+
+  if (lastVersion === version) {
+    message +=
+      '\n* ⚠ No *important* changes were declared - the version will not change and release will not be triggered.\n\n  To address this, declare some "**feat**", "**fix**" or **BREAKING** changes';
+  }
+
+  return [true, message];
 };
