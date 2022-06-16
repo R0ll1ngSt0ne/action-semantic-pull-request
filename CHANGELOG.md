@@ -1,5 +1,12 @@
 # Changelog
 
+### [3.8.8](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/compare/v3.8.7...v3.8.8) (2022-06-16)
+
+
+### Bug Fixes
+
+* ignoring temporary PR title commit ([8abda09](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/commit/8abda0907226fa7da1e3f31a4b8a099abc43c66c))
+
 ### [3.8.7](https://github.com/R0ll1ngSt0ne/action-semantic-pull-request/compare/v3.8.6...v3.8.7) (2022-06-16)
 
 

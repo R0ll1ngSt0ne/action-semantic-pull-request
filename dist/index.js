@@ -49426,19 +49426,19 @@ module.exports = async function validatePrTitleOrSingleCommit() {
           // GitHub does not count merge commits when deciding whether to use
           // the PR title or a commit message for the squash commit message.
           nonMergeCommits = commits.filter(
-            (commit) => commit.parents.length < 2
+            (commit) => commit.parents.length < 2 && commit.commit.message !== '4621fd21-37a6-4dd0-b3f5-a71c28bc2b01'
           );
 
           // We only need two non-merge commits to know that the PR
           // title won't be used.
-          if (nonMergeCommits.length >= 3) break;
+          if (nonMergeCommits.length >= 2) break;
         }
 
         // If there is only one (non merge) commit present, GitHub will use
         // that commit rather than the PR title for the title of a squash
         // commit. To make sure a semantic title is used for the squash
         // commit, we need to validate the commit title.
-        if (nonMergeCommits.length <= 2) {
+        if (nonMergeCommits.length === 1) {
           try {
             await validatePrTitle(nonMergeCommits[0].commit.message, {
               types,
